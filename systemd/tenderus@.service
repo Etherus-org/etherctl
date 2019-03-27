@@ -1,0 +1,21 @@
+[Unit]
+Description=Tenderus service %i
+PartOf=etherus.target
+After=network.target
+Requires=network.target
+
+[Service]
+User=etherus
+Group=etherus
+Type=forking
+PIDFile=/opt/etherus/nodes/node_%i/tenderus.lock
+WorkingDirectory=/opt/etherus
+OOMScoreAdjust=-999
+ExecStart=/opt/etherus/etherctl start_%i_tenderus
+ExecStop=/opt/etherus/etherctl stop_%i_tenderus
+ExecReload=/opt/etherus/etherctl start_%i_tenderus stop_%i_tenderus
+TimeoutStartSec=120
+Restart=always
+
+[Install]
+WantedBy=etherus.target
