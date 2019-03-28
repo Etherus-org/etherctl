@@ -153,7 +153,7 @@ _cmd_install_systemd() {
             return 1
         }
         export CENTOS7INSTALLSUBSHELL=$$
-        su "$SERVICENAME" -s "$0" rollout "$@" || {
+        su "$SERVICENAME" -s "$0" install_systemd "$@" || {
             echo "Failed to run install_systemd" >&2
             return 2
         }
