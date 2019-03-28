@@ -20,6 +20,7 @@ TMPFILE="$(mktemp /tmp/etherus-install.XXXXXX)" || {
     echo "Failed to create script temp file" >&2
     return 1
 }
+trap "rm $TMPFILE" EXIT
 chmod 755 "$TMPFILE" || {
     echo "Failed to change temp script file permissions: $TMPFILE" >&2
     return 2
