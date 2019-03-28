@@ -34,6 +34,10 @@ _cmd_() {
     obey install || {
         echo "Etherus daemon was not installed"
     }
+    obey firewall || {
+        echo "Firewall was not configured"
+        echo "Please open ports 6656/tcp and 6657/tcp manually..."
+    }
 }
 
 _cmd_version() {
@@ -170,11 +174,38 @@ _cmd_install_systemd() {
         echo "Failed to add tenderus service to systemd" >&2
         return 12
     }
-    systemctl daemon-reload || {
-        echo "Failed reload systemd daemon" >&2
-        return 13
-    }
     echo "Etherus Daemon installed successfully. Use systemctl for administration etherus.target"
+}
+
+_cmd_firewall() {
+    command -v firewall-cmd &>/dev/null && {
+        obey firewall_firewalld
+        return $?
+    }
+    echo "Failed to detect system firewall" >&2
+    return 1
+}
+
+_cmd_firewall_firewalld() {
+    [ "$(id -u)" = "0" ] || {
+        [ -z "$CENTOS7INSTALLSUBSHELL" ] || {
+            echo "Failed to run firewall_firewalld as superuser" >&2
+            return 1
+        }
+        export CENTOS7INSTALLSUBSHELL=$$
+        su "$SERVICENAME" -s "$0" firewall_firewalld "$@" || {
+            echo "Failed to run firewall_firewalld" >&2
+            return 2
+        }
+    }
+    firewall-cmd --permanent --add-port=6656/tcp --add-port=6657/tcp || {
+        echo "Failed to configure etherus ports" >&2
+        return 10
+    }
+    firewall-cmd --add-port=6656/tcp --add-port=6657/tcp || {
+        echo "Failed to open etherus ports" >&2
+        return 11
+    }
 }
 
 ###################################################################################################
