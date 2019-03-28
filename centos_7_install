@@ -181,7 +181,18 @@ _cmd_install_systemd() {
         return 13
     }
     echo "Etherus Daemon installed successfully"
-    echo "Use systemctl for administration: etherus.target"
+    systemctl start etherus.target && {
+        echo "Etherus Daemon started successfully"
+    } || {
+        echo "Failed to start Etherus Daemon" >&2
+    }
+    systemctl enable etherus.target && {
+        echo "Etherus Daemon enabled successfully"
+    } || {
+        echo "Failed to enable Etherus Daemon" >&2
+    }
+    echo "Use systemctl for administration"
+    echo "To check Etherus Daemon use: systemctl status etherus.target"
 }
 
 _cmd_firewall() {
