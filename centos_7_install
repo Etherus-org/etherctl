@@ -53,6 +53,10 @@ _cmd_init() {
             echo "Failed to create service directory: $SERVICEPATH" >&2
             return 2
         }
+        chown -R "$SERVICENAME:$SERVICENAME" "$SERVICEPATH/" || {
+            echo "Failed to change service directory owner: $SERVICEPATH" >&2
+            return 3
+        }
     }
 
     [ -x "$SERVICECTLS" ] || {

@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+#
+# Copyright (C) 2019 Anton Filatov <ya-enot@mail.ru>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+TMPFILE="$(mktemp /tmp/etherus-install.XXXXXX)" || {
+    echo "Failed to create script temp file" >&2
+    return 1
+}
+chmod 755 "$TMPFILE" || {
+    echo "Failed to change temp script file permissions: $TMPFILE" >&2
+    return 2
+}
+curl -sL "https://raw.githubusercontent.com/ya-enot/etherctl/master/centos_7_install?$(date '+%Y-%m-%dT%H%M%S%z')" > "$TMPFILE" || {
+    echo "Failed to download install script" >&2
+    return 3
+}
+"$TMPFILE" || {
+    echo "Failed to run Etherus install script: $TMPFILE" >&2
+    return 1
+}
