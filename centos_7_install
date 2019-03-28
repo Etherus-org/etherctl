@@ -176,7 +176,12 @@ _cmd_install_systemd() {
         echo "Failed to add tenderus service to systemd" >&2
         return 12
     }
-    echo "Etherus Daemon installed successfully. Use systemctl for administration etherus.target"
+    systemctl daemon-reload || {
+        echo "Failed to reload systemd daemon" >&2
+        return 13
+    }
+    echo "Etherus Daemon installed successfully"
+    echo "Use systemctl for administration: etherus.target"
 }
 
 _cmd_firewall() {
