@@ -217,14 +217,15 @@ _cmd_firewall_firewalld() {
         }
         return 0
     }
-    firewall-cmd --permanent --add-port=6656/tcp --add-port=6657/tcp || {
+    firewall-cmd --permanent --add-port=6656/tcp --add-port=6657/tcp >/dev/null || {
         echo "Failed to configure etherus ports" >&2
         return 10
     }
-    firewall-cmd --add-port=6656/tcp --add-port=6657/tcp || {
+    firewall-cmd --add-port=6656/tcp --add-port=6657/tcp >/dev/null || {
         echo "Failed to open etherus ports" >&2
         return 11
     }
+    echo "Firewall successfully configured for Etherus"
 }
 
 ###################################################################################################
