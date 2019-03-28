@@ -84,6 +84,7 @@ _cmd_rollout() {
             echo "Failed to run rollout" >&2
             return 2
         }
+        return 0
     }
     [ -d "$SERVICEPATH/" ] && cd "$SERVICEPATH/" || {
         echo "Unable to access service directory: $SERVICEPATH" >&2
@@ -161,6 +162,7 @@ _cmd_install_systemd() {
             echo "Failed to run install_systemd" >&2
             return 2
         }
+        return 0
     }
     [ -f "/etc/systemd/system/etherus.target" ] || getFile "$(pwd)/config/systemd" "etherus.target" > "/etc/systemd/system/etherus.target" || {
         echo "Failed to add etherus target to systemd" >&2
@@ -197,6 +199,7 @@ _cmd_firewall_firewalld() {
             echo "Failed to run firewall_firewalld" >&2
             return 2
         }
+        return 0
     }
     firewall-cmd --permanent --add-port=6656/tcp --add-port=6657/tcp || {
         echo "Failed to configure etherus ports" >&2
