@@ -18,7 +18,7 @@
 
 SERVICENAME='etherus'
 SERVICEPATH='/opt/etherus'
-SERVICECTLS='$SERVICEPATH/etherctl'
+SERVICECTLS="$SERVICEPATH/etherctl"
 
 ###################################################################################################
 
