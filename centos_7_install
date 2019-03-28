@@ -1,0 +1,319 @@
+#!/usr/bin/env sh
+#
+# Copyright (C) 2019 Anton Filatov <ya-enot@mail.ru>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SERVICENAME='etherus'
+# SERVICEPATH='/opt/etherus'
+# SERVICECTLS='$SERVICEPATH/etherctl'
+
+SERVICENAME="enot"
+SERVICEPATH="/d/Projects/Etherus/Testrun/test2"
+SERVICECTLS="$SERVICEPATH/etherctl"
+
+###################################################################################################
+
+_cmd_() {
+    obey version && \
+    obey init && \
+    obey rollout && \
+    echo "Etherus installed successfully" || {
+        local EXIT=$?
+        echo "Etherus installation failed"
+        return $EXIT
+    }
+    obey install || {
+        echo "Etherus daemon was not installed"
+    }
+}
+
+_cmd_version() {
+    echo "Etherus install script v0.1.3"
+}
+
+_cmd_init() {
+    id -u "$SERVICENAME" &>/dev/null || {
+        useradd -d "$SERVICEPATH" -r -s /bin/false "$SERVICENAME" || {
+            echo "Failed to create service user: $SERVICENAME" >&2
+            return 1
+        }
+    }
+
+    [ -d "$SERVICEPATH/" ] || {
+        mkdir -m 750 -p "$SERVICEPATH/" || {
+            echo "Failed to create service directory: $SERVICEPATH" >&2
+            return 2
+        }
+    }
+
+    [ -x "$SERVICECTLS" ] || {
+        touch "$SERVICECTLS" && \
+        chmod 755 "$SERVICECTLS" && \
+        getFile 'etherctl' > "$SERVICECTLS" || {
+            echo "Failed to download service control script" >&2
+            return 3
+        }
+    }
+}
+
+_cmd_rollout() {
+    [ "$(id -u)" = "$(id -u "$SERVICENAME")" ] || {
+        [ -z "$CENTOS7INSTALLSUBSHELL" ] || {
+            echo "Failed to run rollout as $SERVICENAME" >&2
+            return 1
+        }
+        export CENTOS7INSTALLSUBSHELL=$$
+        su "$SERVICENAME" -s "$0" rollout "$@" || {
+            echo "Failed to run rollout" >&2
+            return 2
+        }
+    }
+    [ -d "$SERVICEPATH/" ] && cd "$SERVICEPATH/" || {
+        echo "Unable to access service directory: $SERVICEPATH" >&2
+        return 3
+    }
+    env PEERS="cbc83b53f922a536993b1b055c5c699b210fb840@master.etherus.org:6656" './etherctl' "new" || {
+        echo "Sentry Node creation failed" >&2
+        return 10
+    }
+    getFile "$(pwd)/config" "genesis.json" > "$('./etherctl' path)/data/tenderus/config/genesis.json" || {
+        echo "Failed to write Etherus genesis to Sentry Node" >&2
+        return 11
+    }
+    local SNID="$('./bin/tenderus' show_node_id --home "$('./etherctl' path)/data/tenderus")" || {
+        echo "Failed to get Sentry Node ID" >&2
+        return 12
+    }
+    echo "$SNID" | grep -Eq '^[0-9a-fA-F]{40}$' || {
+        echo "Invalid Sentry Node ID: $SNID" >&2
+        return 13
+    }
+    env PEERS="$SNID@127.0.0.1:6656" './etherctl' "new_1_private" || {
+        echo "Validator Node creation failed" >&2
+        return 14
+    }
+    getFile "$(pwd)/config" "genesis.json" > "$('./etherctl' path_1)/data/tenderus/config/genesis.json" || {
+        echo "Failed to write Etherus genesis to Sentry Node" >&2
+        return 15
+    }
+    local VNID="$('./bin/tenderus' show_node_id --home "$('./etherctl' path_1)/data/tenderus")" || {
+        echo "Failed to get Validator Node ID" >&2
+        return 16
+    }
+    echo "$VNID" | grep -Eq '^[0-9a-fA-F]{40}$' || {
+        echo "Invalid Validator Node ID: $VNID" >&2
+        return 17
+    }
+    './etherctl' "addPrivatePeer $VNID" || {
+        echo "Failed to add Validator peer to Sentry Node" >&2
+        return 18
+    }
+    local VALID="$('./etherctl' "getValidator_1")" || {
+        echo "Failed to add Validator peer to Sentry Node" >&2
+        return 19
+    }
+    echo "$VALID" | grep -Eq '^0x[0-9a-fA-F]{64}$' || {
+        echo "Invalid Validator ID: $VALID" >&2
+        return 20
+    }
+    echo "$VALID" > 'validator.id' && {
+        echo "Your validator ID is saved to file: $(pwd)/validator.id"
+    } || {
+        echo "Failed to write Validator ID to file" >&2
+    }
+    echo "Your validator ID: $VALID"
+}
+
+_cmd_install() {
+    [ "$(ps -sp 1 | tail -n+2 | sed 's/.* .*\/\([^ ]*\) .*$/\1/')" != "systemd" ] || {
+        obey install_systemd
+        return $?
+    }
+    echo "Failed to detect system service" >&2
+    return 1
+}
+
+_cmd_install_systemd() {
+    [ "$(id -u)" = "0" ] || {
+        [ -z "$CENTOS7INSTALLSUBSHELL" ] || {
+            echo "Failed to run install_systemd as superuser" >&2
+            return 1
+        }
+        export CENTOS7INSTALLSUBSHELL=$$
+        su "$SERVICENAME" -s "$0" rollout "$@" || {
+            echo "Failed to run install_systemd" >&2
+            return 2
+        }
+    }
+    [ -f "/etc/systemd/system/etherus.target" ] || getFile "$(pwd)/config/systemd" "etherus.target" > "/etc/systemd/system/etherus.target" || {
+        echo "Failed to add etherus target to systemd" >&2
+        return 10
+    }
+    [ -f "/etc/systemd/system/etherus@.service" ] || getFile "$(pwd)/config/systemd" "etherus@.service" > "/etc/systemd/system/etherus@.service" || {
+        echo "Failed to add etherus service to systemd" >&2
+        return 11
+    }
+    [ -f "/etc/systemd/system/tenderus@.service" ] || getFile "$(pwd)/config/systemd" "tenderus@.service" > "/etc/systemd/system/tenderus@.service" || {
+        echo "Failed to add tenderus service to systemd" >&2
+        return 12
+    }
+    systemctl daemon-reload || {
+        echo "Failed reload systemd daemon" >&2
+        return 13
+    }
+    echo "Etherus Daemon installed successfully. Use systemctl for administration etherus.target"
+}
+
+###################################################################################################
+
+obey() {
+    [ $# -eq 0 ] || {
+        COMMAND="$1"
+        shift
+    }
+    declare -F "_cmd_$COMMAND"&>/dev/null || {
+        echo "Unknown command: $COMMAND"
+        return -1
+    }
+    "_cmd_$COMMAND" "$@"
+}
+
+getFile() {
+    [ $# -gt 1 ] && {
+        local FILEPATH=$1
+        shift
+    }
+    case "$1" in
+    "genesis.json") [ -f "$FILEPATH/$1" ] && cat "$FILEPATH/$1" || cat << "#EOF#"
+{
+  "genesis_time": "2019-02-25T16:29:48.8917618Z",
+  "chain_id": "etherus-main-chain",
+  "consensus_params": {
+    "block_size_params": {
+      "max_bytes": "22020096",
+      "max_txs": "10000",
+      "max_gas": "-1"
+    },
+    "tx_size_params": {
+      "max_bytes": "2097152",
+      "max_gas": "-1"
+    },
+    "block_gossip_params": {
+      "block_part_size_bytes": "65536"
+    },
+    "evidence_params": {
+      "max_age": "100000"
+    }
+  },
+  "validators": [
+    {
+      "pub_key": {
+        "type": "tendermint/PubKeyEd25519",
+        "value": "zJMPdIPW9C1zghWHpEBhrgomU66dhDzD5VA3cGE8RXM="
+      },
+      "power": "2500",
+      "name": ""
+    }
+  ],
+  "app_hash": ""
+}
+#EOF#
+    ;;
+    "etherctl") cat << "#EOF#"
+#!/usr/bin/env sh
+#
+# Copyright (C) 2019 Anton Filatov <ya-enot@mail.ru>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+eval "$(base64 -d <<< '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' | gunzip)"
+#EOF#
+    ;;
+    "etherus.target") cat << "#EOF#"
+[Unit]
+Description=Etherus blockchain network
+After=network.target
+Requires=network.target
+Requires=etherus@0.service
+Requires=etherus@1.service
+
+[Install]
+WantedBy=multi-user.target
+#EOF#
+    ;;
+    "etherus@.service") cat << "#EOF#"
+[Unit]
+Description=Etherus service %i
+PartOf=etherus.target
+After=network.target
+Requires=network.target
+Requires=tenderus@%i.service
+
+[Service]
+User=etherus
+Group=etherus
+Type=forking
+WorkingDirectory=/opt/etherus
+OOMScoreAdjust=-999
+ExecStart=/opt/etherus/etherctl start_%i_etherus
+ExecStop=/opt/etherus/etherctl stop_%i_etherus
+ExecReload=/opt/etherus/etherctl start_%i_etherus stop_%i_etherus
+TimeoutStartSec=120
+Restart=always
+
+[Install]
+WantedBy=etherus.target
+#EOF#
+    ;;
+    "tenderus@.service") cat << "#EOF#"
+[Unit]
+Description=Tenderus service %i
+PartOf=etherus.target
+After=network.target
+Requires=network.target
+
+[Service]
+User=etherus
+Group=etherus
+Type=forking
+WorkingDirectory=/opt/etherus
+OOMScoreAdjust=-999
+ExecStart=/opt/etherus/etherctl start_%i_tenderus
+ExecStop=/opt/etherus/etherctl stop_%i_tenderus
+ExecReload=/opt/etherus/etherctl start_%i_tenderus stop_%i_tenderus
+TimeoutStartSec=120
+Restart=always
+
+[Install]
+WantedBy=etherus.target
+#EOF#
+    ;;
+    *) cat "$FILEPATH/$1"
+    ;;
+    esac
+}
+
+obey "$@"
