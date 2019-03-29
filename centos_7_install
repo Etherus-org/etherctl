@@ -90,7 +90,7 @@ _cmd_rollout() {
         echo "Unable to access service directory: $SERVICEPATH" >&2
         return 3
     }
-    env PEERS="cbc83b53f922a536993b1b055c5c699b210fb840@master.etherus.org:6656" './etherctl' "new" || {
+    env PEERS="07e21d35df9ff6ecce28a5f494d95b990da305bc@master.etherus.org:6656" './etherctl' "new" || {
         echo "Sentry Node creation failed" >&2
         return 10
     }
