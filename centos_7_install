@@ -106,40 +106,48 @@ _cmd_rollout() {
         echo "Invalid Sentry Node ID: $SNID" >&2
         return 13
     }
-    env PEERS="$SNID@127.0.0.1:6656" './etherctl' "new_1_private" || {
-        echo "Validator Node creation failed" >&2
-        return 14
+    local VALPUBS=()
+    createValidator() {
+        env PEERS="$SNID@127.0.0.1:6656" './etherctl' "new_$1_private" || {
+            echo "Validator Node creation failed" >&2
+            return 20
+        }
+        getFile "$(pwd)/config" "genesis.json" > "$('./etherctl' path_$1)/data/tenderus/config/genesis.json" || {
+            echo "Failed to write Etherus genesis to Validator Node" >&2
+            return 21
+        }
+        local VNID="$('./bin/tenderus' show_node_id --home "$('./etherctl' path_$1)/data/tenderus")" || {
+            echo "Failed to get Validator Node ID" >&2
+            return 22
+        }
+        echo "$VNID" | grep -Eq '^[0-9a-fA-F]{40}$' || {
+            echo "Invalid Validator Node ID: $VNID" >&2
+            return 23
+        }
+        './etherctl' "addPrivatePeer $VNID" || {
+            echo "Failed to add Validator peer to Sentry Node" >&2
+            return 24
+        }
+        local VALPUB="$('./etherctl' "getValidator_$1")" || {
+            echo "Failed to get Validator Public Key" >&2
+            return 25
+        }
+        echo "$VALPUB" | grep -Eq '^0x[0-9a-fA-F]{64}$' || {
+            echo "Invalid Validator Public Key: $VALPUB" >&2
+            return 26
+        }
+        VALPUBS+=("$VALPUB")
     }
-    getFile "$(pwd)/config" "genesis.json" > "$('./etherctl' path_1)/data/tenderus/config/genesis.json" || {
-        echo "Failed to write Etherus genesis to Sentry Node" >&2
-        return 15
-    }
-    local VNID="$('./bin/tenderus' show_node_id --home "$('./etherctl' path_1)/data/tenderus")" || {
-        echo "Failed to get Validator Node ID" >&2
-        return 16
-    }
-    echo "$VNID" | grep -Eq '^[0-9a-fA-F]{40}$' || {
-        echo "Invalid Validator Node ID: $VNID" >&2
-        return 17
-    }
-    './etherctl' "addPrivatePeer $VNID" || {
-        echo "Failed to add Validator peer to Sentry Node" >&2
-        return 18
-    }
-    local VALID="$('./etherctl' "getValidator_1")" || {
-        echo "Failed to add Validator peer to Sentry Node" >&2
-        return 19
-    }
-    echo "$VALID" | grep -Eq '^0x[0-9a-fA-F]{64}$' || {
-        echo "Invalid Validator ID: $VALID" >&2
-        return 20
-    }
-    echo "$VALID" > 'validator.id' && {
-        echo "Your validator ID is saved to file: $(pwd)/validator.id"
+    local COUNT="$((${1:-1}))"
+    sequence createValidator $COUNT
+    local VALPUBS="$(IFS=$'\n'; echo "${VALPUBS[*]}")"
+    echo "$VALPUBS" > 'validator.pub' && {
+        echo "Your Validator Public Key is saved to file: $(pwd)/validator.pub"
     } || {
-        echo "Failed to write Validator ID to file" >&2
+        echo "Failed to write Validator Public Key to file" >&2
     }
-    echo "Your validator ID: $VALID"
+    echo "Your validator Public Key:"
+    echo "$VALPUBS" | sed 's/^/    /'
 }
 
 _cmd_install() {
@@ -240,6 +248,15 @@ obey() {
         return -1
     }
     "_cmd_$COMMAND" "$@"
+}
+
+sequence() {
+    local COMMAND="$1"
+    shift
+    for i in $(seq $@)
+    do
+        $"$COMMAND" $i
+    done
 }
 
 getFile() {
