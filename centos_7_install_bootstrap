@@ -20,7 +20,7 @@
         echo "Failed to create script temp file" >&2
         exit 1
     }
-    trap "rm $TMPFILE" EXIT
+    trap "rm -f $TMPFILE" EXIT
     chmod 755 "$TMPFILE" || {
         echo "Failed to change temp script file permissions: $TMPFILE" >&2
         exit 2
