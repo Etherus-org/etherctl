@@ -101,15 +101,15 @@ _cmd_rollout() {
         echo "Unable to access service directory: $SERVICEPATH" >&2
         return 3
     }
-    env PEERS="07e21d35df9ff6ecce28a5f494d95b990da305bc@master.etherus.org:6656" './etherctl' "new" || {
+    env PEERS="07e21d35df9ff6ecce28a5f494d95b990da305bc@master.etherus.org:6656" "$SERVICECTLS" "new" || {
         echo "Sentry Node creation failed" >&2
         return 10
     }
-    getFile "$(pwd)/config" "genesis.json" > "$('./etherctl' path)/data/tenderus/config/genesis.json" || {
+    getFile "$(pwd)/config" "genesis.json" > "$("$SERVICECTLS" "path")/data/tenderus/config/genesis.json" || {
         echo "Failed to write Etherus genesis to Sentry Node" >&2
         return 11
     }
-    local SNID="$('./bin/tenderus' show_node_id --home "$('./etherctl' path)/data/tenderus")" || {
+    local SNID="$("$SERVICECTLS" "getNodeId")" || {
         echo "Failed to get Sentry Node ID" >&2
         return 12
     }
@@ -119,15 +119,15 @@ _cmd_rollout() {
     }
     local VALPUBS=()
     createValidator() {
-        env PEERS="$SNID@127.0.0.1:6656" './etherctl' "new_$1_private" || {
+        env PEERS="$SNID@127.0.0.1:6656" "$SERVICECTLS" "new_$1_private" || {
             echo "Validator Node creation failed" >&2
             return 20
         }
-        getFile "$(pwd)/config" "genesis.json" > "$('./etherctl' path_$1)/data/tenderus/config/genesis.json" || {
+        getFile "$(pwd)/config" "genesis.json" > "$("$SERVICECTLS" "path_$1")/data/tenderus/config/genesis.json" || {
             echo "Failed to write Etherus genesis to Validator Node" >&2
             return 21
         }
-        local VNID="$('./etherctl' getNodeId_$1)" || {
+        local VNID="$("$SERVICECTLS" "getNodeId_$1")" || {
             echo "Failed to get Validator Node ID" >&2
             return 22
         }
@@ -135,11 +135,11 @@ _cmd_rollout() {
             echo "Invalid Validator Node ID: $VNID" >&2
             return 23
         }
-        './etherctl' "addPrivatePeer $VNID" || {
+        "$SERVICECTLS" "addPrivatePeer $VNID" || {
             echo "Failed to add Validator peer to Sentry Node" >&2
             return 24
         }
-        local VALPUB="$('./etherctl' "getValidator_$1")" || {
+        local VALPUB="$("$SERVICECTLS" "getValidator_$1")" || {
             echo "Failed to get Validator Public Key" >&2
             return 25
         }
@@ -202,11 +202,21 @@ _cmd_install_systemd() {
         return 13
     }
     addDependency() {
-        systemctl add-requires "etherus.target" "etherus@$1" 2>/dev/null || {
+        local OUT="$(systemctl add-requires "etherus.target" "etherus@$1" 2>&1)" || {
             echo "Failed to add etherus $1 service to target" >&2
+            WARNINGS+=("$OUT")
         }
     }
-    sequence addDependency $(./etherctl listall)
+    local WARNINGS=()
+    sequence addDependency $("$SERVICECTLS" "listall") || {
+        echo "Failed to add dependencies to target" >&2
+        return 14
+    }
+
+    [ ${#WARNINGS[@]} -gt 0 ] && {
+        echo "Dependencies are added to etherus target with warnings:" >&2
+        (IFS=$'\n'; echo "${WARNINGS[@]}")
+    }
     systemctl enable etherus.target && {
         echo "Etherus Daemon enabled successfully"
     } || {
