@@ -1,9 +1,7 @@
+[Install]
+WantedBy=multi-user.target
+
 [Unit]
 Description=Etherus blockchain network
 After=network.target
 Requires=network.target
-Requires=etherus@0.service
-Requires=etherus@1.service
-
-[Install]
-WantedBy=multi-user.target

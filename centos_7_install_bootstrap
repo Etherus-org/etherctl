@@ -16,6 +16,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 (
+    [ -f /etc/centos-release ] || {
+        echo "Operating System is not a CentOS 7 installation" >&2
+        exit -1
+    }
+    cat /etc/centos-release | grep -Eq '^Cent[Oo][Ss]\(?:\s+|release|\w+\)*\(7\.\d+\)\(\.?\d+\)?.*?$' || {
+        echo "installation is not supported for $(cat /etc/centos-release)" >&2
+        exit -2
+    }
     TMPFILE="$(mktemp /tmp/etherus-install.XXXXXX)" || {
         echo "Failed to create script temp file" >&2
         exit 1
@@ -45,4 +53,4 @@
             }
         }
     }
-)
+    )
