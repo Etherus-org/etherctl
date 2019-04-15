@@ -134,7 +134,7 @@ _args_rollout() {
             case "$ARGNAME" in
             ROLLOUT_VALIDATOR_PRIVATE_KEY)
                 ROLLOUT_VALIDATOR_PRIVATE_KEY+=("$1")
-                ROLLOUT_VALIDATOR_CREATE_NUMBER=(("$1"))
+                ROLLOUT_VALIDATOR_CREATE_NUMBER=$(($1))
                 ;;
             *)
                 return 2
