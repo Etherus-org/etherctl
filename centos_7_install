@@ -23,6 +23,10 @@ SERVICECTLS="$SERVICEPATH/etherctl"
 ###################################################################################################
 
 _cmd_() {
+    obey install
+}
+
+_cmd_install() {
     obey version && \
     obey synctime || {
         local EXIT=$?
@@ -40,13 +44,13 @@ _cmd_() {
         echo "Firewall was not configured"
         echo "Please open ports 6656/tcp, 6657/tcp and 6660/tcp manually..."
     }
-    obey install || {
+    obey install_service || {
         echo "Etherus daemon was not installed"
     }
 }
 
 _cmd_version() {
-    echo "Etherus install script v0.1.3"
+    echo "Etherus install script v0.1.7"
 }
 
 _cmd_synctime() {
@@ -240,24 +244,24 @@ _cmd_rollout() {
     echo "$VALPUBS" | sed 's/^/    /'
 }
 
-_cmd_install() {
+_cmd_install_service() {
     command -v systemctl &>/dev/null && {
-        obey install_systemd
+        obey install_service_systemd
         return $?
     }
     echo "Failed to detect system service" >&2
     return 1
 }
 
-_cmd_install_systemd() {
+_cmd_install_service_systemd() {
     [ "$(id -u)" = "0" ] || {
         [ -z "$CENTOS7INSTALLSUBSHELL" ] || {
-            echo "Failed to run install_systemd as superuser" >&2
+            echo "Failed to run install_service_systemd as superuser" >&2
             return 1
         }
         export CENTOS7INSTALLSUBSHELL=$$
-        su "$SERVICENAME" -s "$0" install_systemd "$@" || {
-            echo "Failed to run install_systemd" >&2
+        su "$SERVICENAME" -s "$0" install_service_systemd "$@" || {
+            echo "Failed to run install_service_systemd" >&2
             return 2
         }
         return 0
