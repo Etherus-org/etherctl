@@ -153,7 +153,7 @@ _cmd_rollout() {
             return 1
         }
         export CENTOS7INSTALLSUBSHELL=$$
-        su "$SERVICENAME" -s"$(command -v sh || command -v bash)" -c"$0 rollout $@" || {
+        su "$SERVICENAME" -s "$(command -v sh || command -v bash)" -c "$0 rollout $(echo "$@")" || {
             echo "Failed to run rollout" >&2
             return 2
         }
