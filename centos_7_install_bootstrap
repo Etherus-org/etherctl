@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-(
+etherusInstallBootstrap() (
     cat /etc/centos-release | grep -Eq '^Cent[Oo][Ss]\(?:\s+|release|\w+\)*\(7\.\d+\)\(\.?\d+\)?.*?$' || {
         echo "Installation is not supported for $(cat /etc/system-release 2>/dev/null || lsb_release -d 2>/dev/null || printf 'your system')" >&2
         exit -1
@@ -54,3 +54,4 @@
         }
     }
 )
+etherusInstallBootstrap
