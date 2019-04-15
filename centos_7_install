@@ -112,12 +112,19 @@ _cmd_init() {
 }
 
 _args_rollout() {
+    [ $# -eq 0 ] && {
+        echo "$0 rollout [-vcn 1] [-vpk <base64 encoded private key>]"
+        return 1
+    }
     local ARGNAME
     while [ $# -gt 0 ]
     do
         case "$1" in
         -vpk|--validator-private-key)
             ARGNAME="ROLLOUT_VALIDATOR_PRIVATE_KEY"
+            ;;
+        -vcn|--validator-create-number)
+            ARGNAME="ROLLOUT_VALIDATOR_CREATE_NUMBER"
             ;;
         *)
             [ "$ARGNAME" = "" ] && {
@@ -127,6 +134,7 @@ _args_rollout() {
             case "$ARGNAME" in
             ROLLOUT_VALIDATOR_PRIVATE_KEY)
                 ROLLOUT_VALIDATOR_PRIVATE_KEY+=("$1")
+                ROLLOUT_VALIDATOR_CREATE_NUMBER=(("$1"))
                 ;;
             *)
                 return 2
@@ -232,7 +240,7 @@ _cmd_rollout() {
         }
         VALPUBS+=("$VALPUB")
     }
-    local COUNT="$((${1:-1}))"
+    local COUNT="${ROLLOUT_VALIDATOR_CREATE_NUMBER:-1}"
     sequence createValidator $(seq $COUNT)
     local VALPUBS="$(IFS=$'\n'; echo "${VALPUBS[*]}")"
     echo "$VALPUBS" > 'validator.pub' && {
