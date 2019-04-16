@@ -112,10 +112,6 @@ _cmd_init() {
 }
 
 _args_rollout() {
-    [ $# -eq 0 ] && {
-        echo "$0 rollout [-vcn 1] [-vpk <base64 encoded private key>]"
-        return 1
-    }
     local ARGNAME
     while [ $# -gt 0 ]
     do
