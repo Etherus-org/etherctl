@@ -55,7 +55,8 @@ _cmd_version() {
 
 _cmd_synctime() {
     _synctime_check_ntpenabled || {
-        echo "Time synchronization disabled" >&2
+        echo "Precise time is required by Etherus" >&2
+        echo "Please check the time synchronization consistency" >&2
         _synctime_check_ntpsynced
     }
 }
@@ -327,6 +328,8 @@ _cmd_install_service_systemd() {
         echo "Failed to reload systemd daemon" >&2
         return 13
     }
+    local WARNINGS=()
+    local INSTALLS=0
     addDependency() {
         local OUT;
         OUT+="$(systemctl add-requires "etherus.target" "etherus@$1" 2>&1)" && {
@@ -339,8 +342,6 @@ _cmd_install_service_systemd() {
             }
         }
     }
-    local WARNINGS
-    local INSTALLS
     sequence addDependency $(env ETHERCTLRUNPATH="$SERVICEPATH" "$SERVICECTLS" "listall") || {
         echo "Failed to add dependencies to target" >&2
         return 14
