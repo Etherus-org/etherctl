@@ -54,12 +54,19 @@ _cmd_version() {
 }
 
 _cmd_synctime() {
+    _synctime_check_ntpenabled || {
+        echo "Time synchronization disabled" >&2
+        _synctime_check_ntpsynced
+    }
+}
+
+_synctime_check_ntpenabled() {
     local NTPENABLED;
     NTPENABLED="$( (timedatectl | grep 'NTP enabled:' | sed 's/.*: \(.*\)/\1/') 2>&1 )" && {
         case "$NTPENABLED" in
             [Yy]* ) echo "Time synchronization enabled"
             ;;
-            [Nn]* ) echo "Time synchronization is not enabled" >&2
+            [Nn]* ) echo "Time synchronization disabled" >&2
             return 1
             ;;
             * ) echo "Time synchronization is: $NTPENABLED" >&2
@@ -67,6 +74,24 @@ _cmd_synctime() {
         esac
     } || {
         echo "Failed to detect time synchronization: $NTPENABLED" >&2
+        return 3
+    }
+}
+
+_synctime_check_ntpsynced() {
+    local NTPSYNCED;
+    NTPSYNCED="$( (timedatectl | grep 'NTP synchronized:' | sed 's/.*: \(.*\)/\1/') 2>&1 )" && {
+        case "$NTPSYNCED" in
+            [Yy]* ) echo "Time synchronized"
+            ;;
+            [Nn]* ) echo "Time not synchronized" >&2
+            return 1
+            ;;
+            * ) echo "Time synchronization state is: $NTPSYNCED" >&2
+            return 2
+        esac
+    } || {
+        echo "Failed to detect time synchronization state: $NTPSYNCED" >&2
         return 3
     }
 }
