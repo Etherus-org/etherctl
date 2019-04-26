@@ -38,7 +38,7 @@ etherusInstallBootstrap() (
         exit 3
     }
     command -v sudo &>/dev/null && {
-        sudo "$TMPFILE" install "$@" || {
+        sudo "$TMPFILE" "${COMMAND:-install}" "$@" || {
             echo "Failed to run Etherus install script: $TMPFILE" >&2
             exit 4
         }
@@ -47,7 +47,7 @@ etherusInstallBootstrap() (
             echo "You should act as superuser to install Etherus" >&2
             exit 5
         } || {
-            "$TMPFILE" install "$@" || {
+            "$TMPFILE" "${COMMAND:-install}" "$@" || {
                 echo "Failed to run Etherus install script: $TMPFILE" >&2
                 exit 4
             }
