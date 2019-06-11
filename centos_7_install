@@ -20,6 +20,8 @@ SERVICENAME='etherus'
 SERVICEPATH='/opt/etherus'
 SERVICECTLS="$SERVICEPATH/etherctl"
 
+echo "LOG_LEVEL=$LOG_LEVEL"
+
 ###################################################################################################
 
 _cmd_() {
