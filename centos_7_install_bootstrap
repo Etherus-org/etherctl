@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 etherusInstallBootstrap() (
+    export LOG_LEVEL
     cat /etc/centos-release | grep -Eq '^Cent[Oo][Ss]\(?:\s+|release|\w+\)*\(7\.\d+\)\(\.?\d+\)?.*?$' || {
         echo "Installation is not supported for $(cat /etc/system-release 2>/dev/null || lsb_release -d 2>/dev/null || printf 'your system')" >&2
         exit -1
@@ -38,7 +39,7 @@ etherusInstallBootstrap() (
         exit 3
     }
     command -v sudo &>/dev/null && {
-        sudo "$TMPFILE" "${COMMAND:-install}" "$@" || {
+        sudo -E "$TMPFILE" "${COMMAND:-install}" "$@" || {
             echo "Failed to run Etherus install script: $TMPFILE" >&2
             exit 4
         }
