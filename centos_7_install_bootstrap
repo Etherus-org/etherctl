@@ -17,6 +17,7 @@
 #
 etherusInstallBootstrap() (
     export LOG_LEVEL
+    export MIN_REQUIRED_SPACE
     cat /etc/centos-release | grep -Eq '^Cent[Oo][Ss]\(?:\s+|release|\w+\)*\(7\.\d+\)\(\.?\d+\)?.*?$' || {
         echo "Installation is not supported for $(cat /etc/system-release 2>/dev/null || lsb_release -d 2>/dev/null || printf 'your system')" >&2
         exit -1
